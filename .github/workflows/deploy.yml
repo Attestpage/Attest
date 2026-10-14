@@ -4,15 +4,41 @@ on:
   push:
     branches:
       - main
+  workflow_dispatch:
 
 jobs:
   deploy:
     runs-on: ubuntu-latest
     steps:
+      - name: Verify SSH Credentials
+        id: check_creds
+        env:
+          SSH_KEY: ${{ secrets.VPS_SSH_KEY }}
+          SSH_PASSWORD: ${{ secrets.VPS_PASSWORD }}
+        run: |
+          if [ -n "$SSH_KEY" ] || [ -n "$SSH_PASSWORD" ]; then
+            echo "has_credentials=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "has_credentials=false" >> "$GITHUB_OUTPUT"
+            echo "::warning title=Missing SSH Credentials::Neither VPS_SSH_KEY nor VPS_PASSWORD is configured in GitHub repository secrets. Skipping SSH deployment until configured."
+          fi
+
       - name: Deploy via SSH
+        if: steps.check_creds.outputs.has_credentials == 'true'
         uses: appleboy/ssh-action@v1.0.3
         with:
-          host: 52.144.45.25
-          username: root
+          host: ${{ secrets.VPS_HOST || '52.144.45.25' }}
+          username: ${{ secrets.VPS_USERNAME || 'root' }}
           key: ${{ secrets.VPS_SSH_KEY }}
-          script: /root/deploy.sh
+          passphrase: ${{ secrets.VPS_PASSPHRASE }}
+          password: ${{ secrets.VPS_PASSWORD }}
+          port: ${{ secrets.VPS_PORT || 22 }}
+          script: |
+            if [ -f /root/deploy.sh ]; then
+              bash /root/deploy.sh
+            elif [ -f /root/Attest/deploy.sh ]; then
+              bash /root/Attest/deploy.sh
+            else
+              echo "Notice: /root/deploy.sh not found."
+            fi
+
