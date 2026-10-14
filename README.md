@@ -9,7 +9,7 @@ Attest is a robust, zero-trust authentication ecosystem designed to ensure "Proo
 
 
 
-## 🚀 Overview
+## 🚀 Overview of the code 
 
 The ecosystem provides a unified security layer across three primary tiers:
 
